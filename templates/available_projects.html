@@ -1,0 +1,76 @@
+<html>
+  <head>
+    <title>Available projects</title>
+    <style>
+      body {
+        width: 100%;
+      }
+      th {
+        text-align: left;
+      }
+      table {
+        width: 100%;
+        padding: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <h3>Locked Savings</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Duration</th>
+                <th>APY</th>
+                <th>Daily %</th>
+                <th>Range</th>
+                <th>Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset, options in data['locked_savings'].items() %}
+            {% for o in options %}
+            <tr>
+                <td>{{ asset }}</td>
+                <td>{{ o['duration'] }}</td>
+                <td>{{ o['annual_interest_rate'] * 100 }}%</td>
+                <td>{{ (o['daily_interest_rate'] * 100) | round(4) }}%</td>
+                <td>{{ o['min_purchase'] }}-{{ o['max_purchase'] }}</td>
+                <td>{{ (o['purchased'] / o['up_limit'] * 100) | round(2) }}%</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Locked Staking</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Duration</th>
+                <th>APY</th>
+                <th>Daily %</th>
+                <th>Range</th>
+                <th>Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset, options in data['locked_staking'].items() %}
+            {% for o in options %}
+            <tr>
+                <td>{{ asset }}</td>
+                <td>{{ o['duration'] }}</td>
+                <td>{{ o['annual_interest_rate'] * 100 }}%</td>
+                <td>{{ (o['daily_interest_rate'] * 100) | round(4) }}%</td>
+                <td>{{ o['min_purchase'] }}-{{ o['max_purchase'] }}</td>
+                <td>{{ (o['purchased'] / o['up_limit'] * 100) | round(2) }}%</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+  </body>
+</html>
+
