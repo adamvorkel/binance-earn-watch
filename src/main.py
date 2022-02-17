@@ -1,29 +1,16 @@
 import os
-import sys
 import requests
 import smtplib, ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from pprint import pprint
 from jinja2 import Environment, FileSystemLoader
 
 def staking_endpoint(token):
     return f'https://www.binance.com/bapi/earn/v1/friendly/pos/union?pageSize=15&pageIndex=1&status=SUBSCRIBABLE&asset={token}'
 
-
-def get_watchlist():
-    return {
-        'locked_savings': {
-            'BTC': [90],
-            'AXS': [15]
-        },
-        'locked_staking': {
-            'SOL': [90],
-            'DOT': [90],
-            'ADA': [90],
-            'MATIC': [90]
-        }
-    }
+def parse_watchlist_string(watchlist_string):
+    watchlist_items = [p.strip().split('-') for p in watchlist_string.split(',')]
+    return {p[0]: [int(i) for i in p[1:]] for p in watchlist_items }
 
 def render_table(name, data):
     env = Environment(loader=FileSystemLoader('./templates'))
@@ -95,8 +82,17 @@ def get_locked_staking_options(asset, durations):
         'max_purchase': float(p['config']['maxPurchaseAmountPerUser'])
     } for p in data[0]['projects'] if int(p['duration']) in durations]
 
-def run2():
-    watchlist = get_watchlist()
+def run(event, context):
+    locked_savings_watchlist_string = os.environ.get('LOCKED_SAVINGS_WATCHLIST')
+    locked_staking_watchlist_string = os.environ.get('LOCKED_STAKING_WATCHLIST')
+    locked_savings_watchlist = parse_watchlist_string(locked_savings_watchlist_string)
+    locked_staking_watchlist = parse_watchlist_string(locked_staking_watchlist_string)
+
+    watchlist = {
+        'locked_staking': locked_staking_watchlist,
+        'locked_savings': locked_savings_watchlist,
+    }
+
     # data = {
         # 'locked_staking': {key:[] for key in watchlist['locked_staking'].keys()}, 
         # 'locked_savings': {key:[] for key in watchlist['locked_savings'].keys()}
@@ -115,92 +111,7 @@ def run2():
         if options: data['locked_staking'][asset] = options
 
     if data['locked_savings'] or data['locked_staking']:
-        pprint(data)
         message = render_table('available_projects.html', data)
         subject = 'Binance Earn Options Available'
         send_mail('adamvorkel@gmail.com', subject, message)
-
-
-
-
-
-
-def run(event, context):
-    print('Running...')
-    watchlist = get_watchlist()
-    open_projects = {}
-    for w in watchlist:
-        res = requests.get(staking_endpoint(w['asset']))
-        payload = res.json()
-        data = payload['data']
-        if not len(data):
-            break
-
-        projects = [{
-                'duration': int(p['duration']),
-                'annual_interest_rate': p['config']['annualInterestRate'],
-                'daily_interest_rate': p['config']['dailyInterestRate'],
-                'up_limit': p['upLimit'],
-                'purchased': p['purchased'],
-                'min_purchase': p['config']['minPurchaseAmount'],
-                'max_purchase': p['config']['maxPurchaseAmountPerUser']
-        } for p in data[0]['projects'] if p['asset'] == w['asset'] and int(p['duration']) in w['duration'] and p['sellOut'] == False]
-
-        if len(projects):
-            open_projects[w['asset']] = projects
-
-    if open_projects:
-        projects = [f"{asset}-{'|'.join([str(d['duration']) for d in projects])}" for asset, projects in open_projects.items()]
-
-        subject = f"Binance stake available - {', '.join(projects)}"
-        message = ''
-
-        message += '<html>'
-        message += '<head>'
-        message += """<style>
-        body {
-            width: 100%;
-        }
-        th {
-            text-align: left;
-        }
-        table {
-            width: 100%;
-            padding: 0.5rem;
-        }
-        </style>"""
-        message += '</head>'
-        message += '<body>'
-
-        for asset, options in open_projects.items():
-            message += f"<h4>{asset}</h4>"
-            message += '<table>'
-            message += '<thead>'
-            message += '<tr>'
-            message += '<th>Duration</th>'
-            message += '<th>APY</th>'
-            message += '<th>Daily %</th>'
-            message += '<th>Range</th>'
-            message += '<th>Sold out</th>'
-            message += '</tr>'
-            message += '</thead>'
-            message += '<tbody>'
-            
-            for o in options:
-                message += '<tr>'
-                message += f"<td>{o['duration']}</td>" 
-                message += f"<td>{round(float(o['annual_interest_rate']) * 100, 4)}%</td>" 
-                message += f"<td>{round(float(o['daily_interest_rate']) * 100, 4)}%</td>"
-                message += f"<td>{round(float(o['min_purchase']), 2)} - {round(float(o['max_purchase']), 2)}</td>"
-                message += f"<td>{round(float(o['purchased']) / float(o['up_limit']) * 100, 2)}%</td>" 
-                message += '</tr>'
-            message += '</tbody>'
-            message += '</table>'
-
-        message += '</body>'
-        message += '</head>'
-        print(f'sending mail with subject {subject}')
-        send_mail('adamvorkel@gmail.com', subject, message)
-        # print(f"no availability for {w['asset']} | {'/'.join(str(d) for d in w['duration'])}")
-    else:
-        print('no availability')
+    else: print(f'no availability for savings({locked_savings_watchlist}) or staking ({locked_staking_watchlist})')

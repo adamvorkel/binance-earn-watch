@@ -34,7 +34,7 @@
             <tr>
                 <td>{{ asset }}</td>
                 <td>{{ o['duration'] }}</td>
-                <td>{{ o['annual_interest_rate'] * 100 }}%</td>
+                <td>{{ (o['annual_interest_rate'] * 100) | round(2) }}%</td>
                 <td>{{ (o['daily_interest_rate'] * 100) | round(4) }}%</td>
                 <td>{{ o['min_purchase'] }}-{{ o['max_purchase'] }}</td>
                 <td>{{ (o['purchased'] / o['up_limit'] * 100) | round(2) }}%</td>
@@ -62,7 +62,7 @@
             <tr>
                 <td>{{ asset }}</td>
                 <td>{{ o['duration'] }}</td>
-                <td>{{ o['annual_interest_rate'] * 100 }}%</td>
+                <td>{{ (o['annual_interest_rate'] * 100) | round(2) }}%</td>
                 <td>{{ (o['daily_interest_rate'] * 100) | round(4) }}%</td>
                 <td>{{ o['min_purchase'] }}-{{ o['max_purchase'] }}</td>
                 <td>{{ (o['purchased'] / o['up_limit'] * 100) | round(2) }}%</td>
